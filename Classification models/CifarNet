@@ -1,0 +1,120 @@
+import matplotlib.pyplot as plt
+import argparse
+import keras
+import tensorflow as tf
+# Import necessary components to build LeNet
+from keras.models import Sequential
+from keras.layers.core import Dense, Dropout, Activation, Flatten
+from keras.layers.convolutional import Conv2D, MaxPooling2D, ZeroPadding2D
+from tensorflow.keras.layers import BatchNormalization
+from keras.regularizers import l2
+import numpy as np
+
+
+tf.keras.utils.image_dataset_from_directory(
+    r"C:\Users\joaog\OneDrive\uni\paper\gna\img\dataset final\testing_extended",
+    labels='inferred',
+    label_mode='int',
+    class_names=None,
+    color_mode='grayscale',
+    batch_size=32,
+    image_size=(284, 284),
+    shuffle=True,
+    seed=None,
+    validation_split=None,
+    subset=None,
+    interpolation='bilinear',
+    follow_links=False,
+    crop_to_aspect_ratio=False,
+    
+)
+
+
+tf.keras.layers.Rescaling(
+    scale=1./255, offset=0.0
+)
+
+img_height = 284
+img_width = 284
+batch_size= 32
+
+train_ds = tf.keras.utils.image_dataset_from_directory(
+  r"C:\Users\joaog\OneDrive\uni\paper\gna\img\dataset final\testing_extended",
+  validation_split=0.2,
+  subset="training",
+  seed=123,
+  image_size=(img_height, img_width),
+  batch_size=batch_size)
+
+#para treino
+val_ds = tf.keras.utils.image_dataset_from_directory(
+  r"C:\Users\joaog\OneDrive\uni\paper\gna\img\dataset final\testing_extended",
+  validation_split=0.2,
+  subset="validation",
+  seed=123,
+  image_size=(img_height, img_width),
+  batch_size=batch_size)
+
+cifarnet = Sequential()
+
+#1st Convolutional Layer
+cifarnet.add(Conv2D(filters=32, input_shape=(284,284,3), kernel_size=(5,5), strides=(2,2), padding='same'))
+cifarnet.add(BatchNormalization())
+cifarnet.add(Activation('relu'))
+cifarnet.add(MaxPooling2D(pool_size=(3,3), strides=(2,2), padding='same'))
+
+#2nd Convolution Layer
+cifarnet.add(Conv2D(filters=32, kernel_size=(5,5), strides=(2,2), padding='same'))
+cifarnet.add(BatchNormalization())
+cifarnet.add(Activation('relu'))
+cifarnet.add(MaxPooling2D(pool_size=(3,3), strides=(2,2), padding='same'))
+
+#3rd Convolution Layer
+cifarnet.add(Conv2D(filters=64, kernel_size=(5,5), strides=(2,2), padding='same'))
+cifarnet.add(BatchNormalization())
+cifarnet.add(Activation('relu'))
+cifarnet.add(MaxPooling2D(pool_size=(3,3), strides=(2,2), padding='same'))
+
+#Passing it to a Fully Connected layer
+cifarnet.add(Flatten())
+# 1st Fully Connected Layer
+cifarnet.add(Dense(256, input_shape=(32,32,3,)))
+cifarnet.add(BatchNormalization())
+cifarnet.add(Activation('relu'))
+# Add Dropout to prevent overfitting
+cifarnet.add(Dropout(0.4))
+
+#Output Layer
+cifarnet.add(Dense(10))
+cifarnet.add(BatchNormalization())
+cifarnet.add(Activation('softmax'))
+
+
+
+cifarnet.summary()
+
+cifarnet.compile(
+  optimizer='adam',
+  loss=tf.losses.SparseCategoricalCrossentropy(from_logits=True),
+  metrics=['accuracy'])
+
+# cifarnet.fit(train_ds, epochs=4, validation_data=val_ds)
+
+history = cifarnet.fit(train_ds, epochs=10, validation_data=val_ds)
+plt.plot(history.history['accuracy'])
+plt.plot(history.history['val_accuracy'])
+plt.title('model accuracy')
+plt.ylabel('accuracy')
+plt.xlabel('epoch')
+plt.legend(['train', 'val'], loc='upper left')
+plt.show()
+
+plt.plot(history.history['loss'])
+plt.plot(history.history['val_loss'])
+plt.title('model loss')
+plt.ylabel('loss')
+plt.xlabel('epoch')
+plt.legend(['train', 'val'], loc='upper left')
+plt.show()
+
+cifarnet.save(r'C:\Users\joaog\OneDrive\uni\paper\gna\cod bom\cnn saves\cifarnet_ext')
