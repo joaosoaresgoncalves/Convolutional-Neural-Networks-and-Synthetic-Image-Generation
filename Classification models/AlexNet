@@ -1,0 +1,168 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Sep 28 10:39:31 2022
+
+@author: joaog
+"""
+
+import argparse
+import keras
+import tensorflow as tf
+# Import necessary components to build LeNet
+from keras.models import Sequential
+from keras.layers.core import Dense, Dropout, Activation, Flatten
+from keras.layers.convolutional import Conv2D, MaxPooling2D, ZeroPadding2D
+from tensorflow.keras.layers import BatchNormalization
+from keras.regularizers import l2
+import numpy as np
+
+AlexNet = Sequential()
+
+#1st Convolutional Layer
+AlexNet.add(Conv2D(filters=96, input_shape=(284,284,3), kernel_size=(11,11), strides=(4,4), padding='same'))
+AlexNet.add(BatchNormalization())
+AlexNet.add(Activation('relu'))
+AlexNet.add(MaxPooling2D(pool_size=(2,2), strides=(2,2), padding='same'))
+
+#2nd Convolutional Layer
+AlexNet.add(Conv2D(filters=256, kernel_size=(5, 5), strides=(1,1), padding='same'))
+AlexNet.add(BatchNormalization())
+AlexNet.add(Activation('relu'))
+AlexNet.add(MaxPooling2D(pool_size=(2,2), strides=(2,2), padding='same'))
+
+#3rd Convolutional Layer
+AlexNet.add(Conv2D(filters=384, kernel_size=(3,3), strides=(1,1), padding='same'))
+AlexNet.add(Activation('relu'))
+
+#4rd Convolutional Layer
+AlexNet.add(Conv2D(filters=384, kernel_size=(3,3), strides=(1,1), padding='same'))
+AlexNet.add(Activation('relu'))
+
+
+
+#5th Convolutional Layer
+AlexNet.add(Conv2D(filters=256, kernel_size=(3,3), strides=(1,1), padding='same'))
+AlexNet.add(Activation('relu'))
+AlexNet.add(MaxPooling2D(pool_size=(3,3), strides=(2,2), padding='same'))
+
+#Passing it to a Fully Connected layer
+AlexNet.add(Flatten())
+# 1st Fully Connected Layer
+AlexNet.add(Dense(4096, input_shape=(32,32,3,)))
+AlexNet.add(BatchNormalization())
+AlexNet.add(Activation('relu'))
+# Add Dropout to prevent overfitting
+AlexNet.add(Dropout(0.4))
+
+#2nd Fully Connected Layer
+AlexNet.add(Dense(4096))
+AlexNet.add(BatchNormalization())
+AlexNet.add(Activation('relu'))
+#Add Dropout
+AlexNet.add(Dropout(0.4))
+
+#3rd Fully Connected Layer
+AlexNet.add(Dense(1000))
+AlexNet.add(BatchNormalization())
+AlexNet.add(Activation('relu'))
+#Add Dropout
+AlexNet.add(Dropout(0.4))
+
+#Output Layer
+AlexNet.add(Dense(2))
+AlexNet.add(BatchNormalization())
+AlexNet.add(Activation('softmax'))
+
+#Model Summary
+AlexNet.summary()
+
+AlexNet.compile(
+  optimizer='adam',
+  loss=tf.losses.SparseCategoricalCrossentropy(from_logits=True),
+  metrics=['accuracy'])
+
+tf.keras.utils.image_dataset_from_directory(
+    r"C:\Users\joaog\OneDrive\uni\paper\gna\img\dataset final\testing_extended",
+    labels='inferred',
+    label_mode='int',
+    class_names=None,
+    color_mode='grayscale',
+    batch_size=32,
+    image_size=(284, 284),
+    shuffle=True,
+    seed=None,
+    validation_split=None,
+    subset=None,
+    interpolation='bilinear',
+    follow_links=False,
+    crop_to_aspect_ratio=False,
+    
+)
+
+tf.keras.layers.Rescaling(
+    scale=1./255, offset=0.0
+)
+
+img_height = 284
+img_width = 284
+batch_size= 32
+
+train_ds = tf.keras.utils.image_dataset_from_directory(
+  r"C:\Users\joaog\OneDrive\uni\paper\gna\img\dataset final\testing_extended",
+  validation_split=0.2,
+  subset="training",
+  seed=123,
+  image_size=(img_height, img_width),
+  batch_size=batch_size)
+
+# para treino
+val_ds = tf.keras.utils.image_dataset_from_directory(
+  r"C:\Users\joaog\OneDrive\uni\paper\gna\img\dataset final\testing_extended",
+  validation_split=0.2,
+  subset="validation",
+  seed=123,
+  image_size=(img_height, img_width),
+  batch_size=batch_size)
+
+#para usar
+# val_ds = tf.keras.utils.image_dataset_from_directory(
+#   r"C:\Users\joaog\OneDrive\uni\paper\gna\img\CASO_1 _form\img ger classifi",
+#   validation_split=0.999,
+#   subset="validation",
+#   seed=123,
+#   image_size=(img_height, img_width),
+#   batch_size=batch_size)
+
+
+# AlexNet.fit(train_ds, epochs=4, validation_data=val_ds)
+
+#After successful training, we will visualize its performance.
+
+import matplotlib.pyplot as plt
+#Plotting the training and validation loss
+history = AlexNet.fit(train_ds, epochs=10, validation_data=val_ds)
+plt.plot(history.history['accuracy'])
+plt.plot(history.history['val_accuracy'])
+plt.title('model accuracy')
+plt.ylabel('accuracy')
+plt.xlabel('epoch')
+plt.legend(['train', 'val'], loc='upper left')
+plt.show()
+
+
+plt.plot(history.history['loss'])
+plt.plot(history.history['val_loss'])
+plt.title('model loss')
+plt.ylabel('loss')
+plt.xlabel('epoch')
+plt.legend(['train', 'val'], loc='upper left')
+plt.show()
+
+#Classification accuracy
+# from sklearn.metrics import accuracy_score
+# acc_score = accuracy_score(y_true, y_pred)
+# print('Accuracy Score = ', acc_score)
+
+# AlexNet.save(r'C:\Users\joaog\OneDrive\uni\paper\gna\cod bom\cnn saves\alex net_ext')
+# model = keras.models.load_model(r'C:\Users\joaog\OneDrive\uni\paper\gna\cod bom\cnn saves\alex net')
+# predictions = model.evaluate(val_ds)
