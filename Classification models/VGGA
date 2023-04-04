@@ -1,0 +1,186 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Sep 30 14:14:42 2022
+
+@author: joaog
+"""
+
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Sep 30 13:53:10 2022
+
+@author: joaog
+"""
+import shap
+import argparse
+import keras
+import tensorflow as tf
+# Import necessary components to build vgg19
+from keras.models import Sequential
+from keras.layers.core import Dense, Dropout, Activation, Flatten
+from keras.layers.convolutional import Conv2D, MaxPooling2D, ZeroPadding2D
+from tensorflow.keras.layers import BatchNormalization
+from keras.regularizers import l2
+import numpy as np
+from keras.regularizers import l2
+
+tf.keras.utils.image_dataset_from_directory(
+    r"C:\Users\joaog\OneDrive\uni\paper\gna\img\dataset final\testing_extended",
+    labels='inferred',
+    label_mode='int',
+    class_names=None,
+    color_mode='rgb',
+    batch_size=32,
+    image_size=(284, 284),
+    shuffle=True,
+    seed=None,
+    validation_split=None,
+    subset=None,
+    interpolation='bilinear',
+    follow_links=False,
+    crop_to_aspect_ratio=False,
+    
+)
+
+tf.keras.layers.Rescaling(
+    scale=1./255, offset=0.0
+)
+
+img_height = 284
+img_width = 284
+batch_size= 32
+
+train_ds = tf.keras.utils.image_dataset_from_directory(
+  r"C:\Users\joaog\OneDrive\uni\paper\gna\img\dataset final\testing_extended",
+  validation_split=0.2,
+  subset="training",
+  seed=123,
+  image_size=(img_height, img_width),
+  batch_size=batch_size)
+
+val_ds = tf.keras.utils.image_dataset_from_directory(
+  r"C:\Users\joaog\OneDrive\uni\paper\gna\img\dataset final\testing_extended",
+  validation_split=0.2,
+  subset="validation",
+  seed=123,
+  image_size=(img_height, img_width),
+  batch_size=batch_size)
+
+# Initialize model
+vgg19 = Sequential()
+
+img_shape= (284,284,3)
+n_classes=2
+l2_reg=0.
+
+   	# 2 sets of CRP (Convolution, RELU, Pooling)
+vgg19 = Sequential()
+
+	# Layer 1 & 2
+vgg19.add(Conv2D(32, (3, 3),strides=(4,4), padding='same',
+		input_shape=img_shape, kernel_regularizer=l2(l2_reg)))
+vgg19.add(Activation('relu'))
+vgg19.add(ZeroPadding2D((1, 1)))
+vgg19.add(Conv2D(32, (3, 3),strides=(4,4), padding='same'))
+vgg19.add(Activation('relu'))
+vgg19.add(MaxPooling2D(pool_size=(2, 2)))
+
+	# Layer 3 & 4
+vgg19.add(ZeroPadding2D((1, 1)))
+vgg19.add(Conv2D(64, (3, 3), strides=(4,4),padding='same'))
+vgg19.add(Activation('relu'))
+vgg19.add(ZeroPadding2D((1, 1)))
+vgg19.add(Conv2D(64, (3, 3), strides=(4,4),padding='same'))
+vgg19.add(Activation('relu'))
+vgg19.add(MaxPooling2D(pool_size=(2, 2)))
+
+	# Layer 5, 6, 7, & 8
+vgg19.add(ZeroPadding2D((1, 1)))
+vgg19.add(Conv2D(128, (3, 3),strides=(4,4), padding='same'))
+vgg19.add(Activation('relu'))
+vgg19.add(ZeroPadding2D((1, 1)))
+vgg19.add(Conv2D(128, (3, 3),strides=(4,4), padding='same'))
+vgg19.add(Activation('relu'))
+vgg19.add(ZeroPadding2D((1, 1)))
+vgg19.add(Conv2D(128, (3, 3), padding='same'))
+vgg19.add(Activation('relu'))
+vgg19.add(ZeroPadding2D((1, 1)))
+vgg19.add(Conv2D(128, (3, 3), padding='same'))
+vgg19.add(Activation('relu'))
+vgg19.add(MaxPooling2D(pool_size=(2, 2)))
+
+	# Layers 9, 10, 11, & 12
+vgg19.add(ZeroPadding2D((1, 1)))
+vgg19.add(Conv2D(256, (3, 3), padding='same'))
+vgg19.add(Activation('relu'))
+vgg19.add(ZeroPadding2D((1, 1)))
+vgg19.add(Conv2D(256, (3, 3), padding='same'))
+vgg19.add(Activation('relu'))
+vgg19.add(ZeroPadding2D((1, 1)))
+vgg19.add(Conv2D(256, (3, 3), padding='same'))
+vgg19.add(Activation('relu'))
+vgg19.add(ZeroPadding2D((1, 1)))
+vgg19.add(Conv2D(256, (3, 3), padding='same'))
+vgg19.add(Activation('relu'))
+vgg19.add(MaxPooling2D(pool_size=(2, 2)))
+
+	# Layers 13, 14, 15, & 16
+vgg19.add(ZeroPadding2D((1, 1)))
+vgg19.add(Conv2D(256, (3, 3), padding='same'))
+vgg19.add(Activation('relu'))
+vgg19.add(ZeroPadding2D((1, 1)))
+vgg19.add(Conv2D(256, (3, 3), padding='same'))
+vgg19.add(Activation('relu'))
+vgg19.add(ZeroPadding2D((1, 1)))
+vgg19.add(Conv2D(256, (3, 3), padding='same'))
+vgg19.add(Activation('relu'))
+vgg19.add(ZeroPadding2D((1, 1)))
+vgg19.add(Conv2D(256, (3, 3), padding='same'))
+vgg19.add(Activation('relu'))
+vgg19.add(MaxPooling2D(pool_size=(2, 2)))
+
+	# Layers 17, 18, & 19
+vgg19.add(Flatten())
+vgg19.add(Dropout(0.5))
+vgg19.add(Dense(4096))
+vgg19.add(Activation('relu'))
+vgg19.add(Dropout(0.5))
+vgg19.add(Dense(n_classes))
+vgg19.add(Activation('softmax'))
+
+vgg19.summary()
+
+vgg19.compile(
+  optimizer='adam',
+  loss=tf.losses.SparseCategoricalCrossentropy(from_logits=True),
+  metrics=['accuracy'])
+
+vgg19.fit(train_ds, epochs=10, validation_data=val_ds)
+
+#After successful training, we will visualize its performance.
+
+import matplotlib.pyplot as plt
+#Plotting the training and validation loss
+
+f,ax=plt.subplots(2,1) #Creates 2 subplots under 1 column
+
+#Assigning the first subplot to graph training loss and validation loss
+ax[0].plot(vgg19.history.history['loss'],color='b',label='Training Loss')
+ax[0].plot(vgg19.history.history['val_loss'],color='r',label='Validation Loss')
+
+#Plotting the training accuracy and validation accuracy
+ax[1].plot(vgg19.history.history['accuracy'],color='b',label='Training  Accuracy')
+ax[1].plot(vgg19.history.history['val_accuracy'],color='r',label='Validation Accuracy')
+
+plt.legend()
+
+#Classification accuracy
+# from sklearn.metrics import accuracy_score
+# acc_score = accuracy_score(y_true, y_pred)
+# print('Accuracy Score = ', acc_score)
+
+vgg19.save(r'C:\Users\joaog\OneDrive\uni\paper\gna\cod bom\cnn saves\vgga_Ext')
+
+explainer = shap.DeepExplainer(vgg19, train_ds)
+shap_values = explainer.shap_values(val_ds)
+
